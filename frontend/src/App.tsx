@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import VideoUploadForm from './components/VideoUploadForm';
 import ResultsDisplay from './components/ResultsDisplay';
 import ErrorMessage from './components/ErrorMessage';
