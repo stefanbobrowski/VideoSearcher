@@ -41,3 +41,6 @@ steps:
       ]
 images:
   - 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY
+logsBucket: gs://video-searcher-logs
