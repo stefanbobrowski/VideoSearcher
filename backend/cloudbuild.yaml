@@ -1,0 +1,18 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA', '.' ]
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA' ]
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run', 'deploy', 'video-searcher-backend',
+        '--image', 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA',
+        '--region', 'us-central1',
+        '--platform', 'managed',
+        '--allow-unauthenticated',
+        '--project', 'video-searcher'
+      ]
+images:
+  - 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA'

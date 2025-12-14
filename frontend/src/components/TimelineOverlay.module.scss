@@ -1,0 +1,31 @@
+.timeline {
+  width: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 16px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+}
+.marker {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: teal;
+  border-radius: 4px;
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: background 0.2s;
+  border: 2px solid #fff;
+  box-shadow: 0 0 2px #0002;
+  pointer-events: auto;
+}
+.marker:hover {
+  background: orange;
+}
