@@ -1,0 +1,12 @@
+createTime: '2025-12-14T21:19:34.981511991Z'
+filename: cloudbuild.yaml
+github:
+  name: VideoSearcher
+  owner: stefanbobrowski
+  push:
+    branch: ^main$
+id: a79ce63d-6514-4421-b981-278c6ab6c34c
+name: video-searcher-deploy
+resourceName: projects/video-searcher-1/locations/us-central1/triggers/a79ce63d-6514-4421-b981-278c6ab6c34c
+serviceAccount: projects/video-searcher-1/serviceAccounts/video-searcher-backend@video-searcher-1.iam.gserviceaccount.com
+includeBuildLogs: INCLUDE_BUILD_LOGS_WITH_STATUS
