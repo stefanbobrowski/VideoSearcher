@@ -1,0 +1,6 @@
+# robots.txt for VideoSearcher Frontend
+
+User-agent: *
+Disallow:
+
+# Allow all crawlers. Adjust as needed for production.
