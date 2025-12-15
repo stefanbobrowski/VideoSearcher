@@ -6,6 +6,7 @@ github:
   push:
     branch: ^main$
 id: a79ce63d-6514-4421-b981-278c6ab6c34c
+includeBuildLogs: INCLUDE_BUILD_LOGS_WITH_STATUS
 name: video-searcher-deploy
 resourceName: projects/video-searcher-1/locations/us-central1/triggers/a79ce63d-6514-4421-b981-278c6ab6c34c
-serviceAccount: projects/video-searcher-1/serviceAccounts/video-searcher-backend@video-searcher-1.iam.gserviceaccount.com
+serviceAccount: projects/video-searcher-1/serviceAccounts/637174041158@cloudbuild.gserviceaccount.com
