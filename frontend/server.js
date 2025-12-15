@@ -16,8 +16,8 @@ console.log('📂 Serving dist from:', distPath);
 
 app.use(express.static(distPath));
 
-// SPA fallback - serve index.html for all routes
-app.get('*', (req, res) => {
+// NEW EXPRESS 5 WILDCARD SYNTAX
+app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
