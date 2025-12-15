@@ -16,7 +16,6 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server.js ./server.js
 
 EXPOSE 8080
 CMD ["node", "server.js"]
