@@ -1,45 +1,40 @@
 steps:
-  # Frontend build
-  - name: 'node:20'
-    dir: 'frontend'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        npm ci
-        npm run build
-
-  # Upload frontend artifacts to GCS
+  # Build and deploy frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/video-searcher-frontend', './frontend']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/video-searcher-frontend']
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    dir: 'frontend'
-    entrypoint: 'bash'
+    entrypoint: gcloud
     args:
-      - '-c'
-      - |
-        gsutil -m rsync -r dist gs://video-searcher-uploads/video-searcher-frontend/
+      [
+        'run', 'deploy', 'video-searcher-frontend',
+        '--image=gcr.io/$PROJECT_ID/video-searcher-frontend',
+        '--region=us-central1',
+        '--platform=managed',
+        '--allow-unauthenticated',
+        '--port=8080'
+      ]
 
-  # Backend build (Docker)
-  - name: 'gcr.io/cloud-builders/docker'
+  # Build backend
+  - name: 'node:20'
     dir: 'backend'
-    args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA', '.' ]
+    entrypoint: npm
+    args: ['ci']
+  - name: 'node:20'
+    dir: 'backend'
+    entrypoint: npm
+    args: ['run', 'build']
 
-  # Backend push
-  - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'push', 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA' ]
-
-  # Deploy backend to Cloud Run
+  # Deploy backend from source
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       [
         'run', 'deploy', 'video-searcher-backend',
-        '--image', 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA',
-        '--region', 'us-central1',
-        '--platform', 'managed',
-        '--allow-unauthenticated',
-        '--project', 'video-searcher'
+        '--source=backend/',
+        '--region=us-central1',
+        '--allow-unauthenticated'
       ]
-images:
-  - 'gcr.io/$PROJECT_ID/video-searcher-backend:$SHORT_SHA'
 options:
   logging: CLOUD_LOGGING_ONLY
