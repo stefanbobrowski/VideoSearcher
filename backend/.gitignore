@@ -13,4 +13,13 @@ yarn-error.log*
 .env*
 
 # Service account keys (never commit!)
-*.json
+*-key.json
+*service-account*.json
+*firebase*.json
+gcp-key.json
+serviceAccountKey.json
+
+# Allow package files
+!package.json
+!package-lock.json
+!tsconfig*.json
