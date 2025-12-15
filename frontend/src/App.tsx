@@ -104,7 +104,7 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
 
   // Placeholder for actual upload logic
-  const handleUpload = (file: File, prompt: string) => {
+  const handleUpload = (file: File, _prompt: string) => {
     setUploading(true);
     setProgress(0);
     setError('');
