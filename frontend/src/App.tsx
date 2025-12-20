@@ -112,63 +112,69 @@ function App() {
     setFile(file);
 
     try {
-      // Step 1: Upload the video file
-      console.log('📤 Step 1: Uploading video to GCS...');
-      const formData = new FormData();
-      formData.append('video', file);
+      // Step 1: Get signed URL for direct upload to GCS
+      console.log('📝 Step 1: Requesting signed upload URL...');
 
-      console.log('Sending POST to:', `${API_URL}/upload`);
-      console.log('FormData size:', file.size, 'bytes');
-      console.log('File type:', file.type);
-      console.log('File name:', file.name);
-      console.log('About to call fetch...');
-
-      const uploadController = new AbortController();
-      const uploadTimeout = setTimeout(() => uploadController.abort(), 5 * 60 * 1000); // 5 minute timeout
-
-      const uploadRes = await fetch(`${API_URL}/upload`, {
+      const signedUrlRes = await fetch(`${API_URL}/generate-upload-url`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+        }),
+      });
+
+      if (!signedUrlRes.ok) {
+        if (signedUrlRes.status === 401 || signedUrlRes.status === 403) {
+          console.log('Authentication error, logging out...');
+          logout();
+          throw new Error('Session expired. Please log in again.');
+        }
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { uploadUrl, gcsUri } = await signedUrlRes.json();
+      console.log('✅ Got signed URL, uploading directly to GCS...');
+
+      setProgress(10);
+
+      // Step 2: Upload directly to GCS using signed URL
+      console.log('📤 Step 2: Uploading video to GCS...');
+
+      const uploadController = new AbortController();
+      const uploadTimeout = setTimeout(() => uploadController.abort(), 10 * 60 * 1000); // 10 minute timeout
+
+      const gcsUploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file,
         signal: uploadController.signal,
       })
         .then((res) => {
           clearTimeout(uploadTimeout);
-          console.log('✅ Fetch completed, got response');
+          console.log('✅ Upload to GCS completed');
           return res;
         })
         .catch((err) => {
           clearTimeout(uploadTimeout);
-          console.error('❌ Fetch error during upload:', err);
-          console.error('Error name:', err.name);
-          console.error('Error message:', err.message);
+          console.error('❌ Fetch error during GCS upload:', err);
           throw err;
         });
 
-      console.log('Upload response status:', uploadRes.status);
-
-      if (!uploadRes.ok) {
-        // Auto-logout on auth errors
-        if (uploadRes.status === 401 || uploadRes.status === 403) {
-          console.log('Authentication error during upload, logging out...');
-          logout();
-          throw new Error('Session expired. Please log in again.');
-        }
-        const errorText = await uploadRes.text();
-        console.error('Upload failed with:', errorText);
-        throw new Error(`Upload failed: ${uploadRes.statusText}`);
+      if (!gcsUploadRes.ok) {
+        throw new Error(`GCS upload failed: ${gcsUploadRes.statusText}`);
       }
 
-      const uploadData = await uploadRes.json();
-      const gcsUri = uploadData.gcsUri;
       console.log('✅ Upload complete:', gcsUri);
-
       setProgress(50);
 
-      // Step 2: Analyze the video (this can take 30-120 seconds)
-      console.log('🔍 Step 2: Analyzing video with Gemini...');
+      // Step 3: Analyze the video (this can take 30-120 seconds)
+      console.log('🔍 Step 3: Analyzing video with Gemini...');
       console.log('Request:', { gcsUri, prompt });
 
       const analyzeController = new AbortController();

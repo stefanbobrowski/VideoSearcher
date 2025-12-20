@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
+import { Storage } from '@google-cloud/storage';
 import { uploadVideo, analyzeVideo, testGeminiSimple } from '../services/video.service';
 import { authenticateToken, AuthRequest } from '../middleware/auth.middleware';
-import { checkUserQuota, recordRequest } from '../middleware/quota.middleware';
+import { checkUserQuota } from '../middleware/quota.middleware';
 import { uploadLimiter, analyzeLimiter } from '../middleware/rateLimit.middleware';
 import { validateVideoFile, validateAnalyzeRequest, validateClipSettings } from '../middleware/validation.middleware';
 import { getQuotaStatus } from '../services/user.service';
+
+const storage = new Storage();
 
 const router = Router();
 const upload = multer({ 
@@ -29,6 +32,44 @@ router.post('/test-gemini', async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Generate signed URL for direct upload to GCS
+router.post(
+  '/generate-upload-url',
+  authenticateToken,
+  checkUserQuota,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { fileName, contentType } = req.body;
+      
+      if (!fileName || !contentType) {
+        return res.status(400).json({ error: 'fileName and contentType are required' });
+      }
+      
+      const bucket = storage.bucket(process.env.GCS_BUCKET_NAME || 'video-searcher-uploads');
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const gcsFileName = `uploads/${Date.now()}-${sanitizedFileName}`;
+      const file = bucket.file(gcsFileName);
+      
+      const [url] = await file.getSignedUrl({
+        version: 'v4',
+        action: 'write',
+        expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        contentType: contentType,
+      });
+      
+      console.log('✅ Generated signed URL for:', gcsFileName);
+      res.json({ 
+        uploadUrl: url, 
+        fileName: gcsFileName,
+        gcsUri: `gs://${bucket.name}/${gcsFileName}`
+      });
+    } catch (error: any) {
+      console.error('❌ Error generating upload URL:', error);
+      res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+  }
+);
 
 
 // Single upload endpoint: uploads video to GCS
