@@ -30,7 +30,12 @@ const allowedOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').repl
 app.use(cors({
   origin: allowedOrigin,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Request size limits (increased for uploads)
 app.use(express.json({ limit: '50mb' }));
