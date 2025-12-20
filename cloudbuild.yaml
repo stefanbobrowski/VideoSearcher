@@ -8,7 +8,7 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/video-searcher-frontend'
       - '--build-arg'
-      - 'VITE_API_URL=https://video-searcher-backend-z7yz7rqneq-uc.a.run.app'
+      - 'VITE_API_URL=https://video-searcher-backend-637174041158.us-central1.run.app'
       - './frontend'
 
   # -------------------------------
