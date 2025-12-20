@@ -1,7 +1,13 @@
 import { Storage } from '@google-cloud/storage';
 import { VertexAI } from '@google-cloud/vertexai';
 
-const storage = new Storage();
+// In production (Cloud Run), authentication is automatic via the service account
+// In development, use the credentials file if GOOGLE_APPLICATION_CREDENTIALS is set
+const storage = new Storage(
+  process.env.GOOGLE_APPLICATION_CREDENTIALS
+    ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS }
+    : {} // Empty object = use default credentials (works on Cloud Run)
+);
 const BUCKET_NAME = 'video-searcher-uploads';
 const PROJECT_ID = 'video-searcher-1';
 const LOCATION = 'us-central1';

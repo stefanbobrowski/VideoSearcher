@@ -8,7 +8,13 @@ import { uploadLimiter, analyzeLimiter } from '../middleware/rateLimit.middlewar
 import { validateVideoFile, validateAnalyzeRequest, validateClipSettings } from '../middleware/validation.middleware';
 import { getQuotaStatus } from '../services/user.service';
 
-const storage = new Storage();
+// In production (Cloud Run), authentication is automatic via the service account
+// In development, use the credentials file if GOOGLE_APPLICATION_CREDENTIALS is set
+const storage = new Storage(
+  process.env.GOOGLE_APPLICATION_CREDENTIALS
+    ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS }
+    : {} // Empty object = use default credentials (works on Cloud Run)
+);
 
 const router = Router();
 const upload = multer({ 

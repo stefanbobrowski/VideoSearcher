@@ -19,6 +19,9 @@ import { setCSPHeader } from './middleware/csp.middleware';
 
 const app = express();
 
+// Trust proxy - required for Cloud Run and rate limiting
+app.set('trust proxy', true);
+
 // Content Security Policy header for fonts and other resources
 app.use(setCSPHeader);
 
