@@ -25,15 +25,16 @@ app.use(setCSPHeader);
 // Security headers
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration (ensure no trailing slash in FRONTEND_URL)
+const allowedOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: allowedOrigin,
   credentials: true,
 }));
 
-// Request size limits (reduced for security)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Request size limits (increased for uploads)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Session configuration (needed for OAuth)
 app.use(
