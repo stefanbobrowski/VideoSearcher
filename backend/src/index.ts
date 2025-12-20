@@ -8,13 +8,19 @@ import session from 'express-session';
 dotenv.config();
 
 // Now import modules that depend on env vars
+
 import passport from './config/passport';
 import videoRoutes from './routes/video.routes';
 import healthRoutes from './routes/health.routes';
 import oauthRoutes from './routes/oauth.routes';
 import { generalLimiter } from './middleware/rateLimit.middleware';
+import { setCSPHeader } from './middleware/csp.middleware';
+
 
 const app = express();
+
+// Content Security Policy header for fonts and other resources
+app.use(setCSPHeader);
 
 // Security headers
 app.use(helmet());
