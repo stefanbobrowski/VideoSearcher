@@ -10,6 +10,7 @@ export const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false }, // Suppress warning - we know we're behind Cloud Run proxy
 });
 
 /**
@@ -23,6 +24,7 @@ export const uploadLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
+  validate: { trustProxy: false }, // Suppress warning - we know we're behind Cloud Run proxy
 });
 
 /**
@@ -35,6 +37,7 @@ export const analyzeLimiter = rateLimit({
   message: 'Too many analysis requests. Maximum 5 analyses per day allowed.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false }, // Suppress warning - we know we're behind Cloud Run proxy
 });
 
 /**
@@ -47,6 +50,7 @@ export const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false }, // Suppress warning - we know we're behind Cloud Run proxy
 });
 
 /**
