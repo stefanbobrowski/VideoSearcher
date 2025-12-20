@@ -27,24 +27,28 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({ file, timestamps = [] }) =>
   };
 
   const handleSeek = (seconds: number) => {
-    if (videoRef.current) {
+    if (videoRef.current && Number.isFinite(seconds) && seconds >= 0 && seconds <= duration) {
       videoRef.current.currentTime = seconds;
       videoRef.current.play();
+    } else {
+      console.warn('Invalid seek time:', seconds);
     }
   };
 
   return (
     <div className={styles.videoPreview}>
-      <video
-        ref={videoRef}
-        src={url}
-        controls
-        onLoadedMetadata={handleLoadedMetadata}
-        width="480"
-      />
-      {duration > 0 && timestamps.length > 0 && (
-        <TimelineOverlay duration={duration} timestamps={timestamps} onSeek={handleSeek} />
-      )}
+      <div style={{ position: 'relative', width: '100%' }}>
+        <video
+          ref={videoRef}
+          src={url || undefined}
+          controls
+          onLoadedMetadata={handleLoadedMetadata}
+          style={{ width: '100%', display: 'block', borderRadius: 8 }}
+        />
+        {duration > 0 && timestamps.length > 0 && (
+          <TimelineOverlay duration={duration} timestamps={timestamps} onSeek={handleSeek} />
+        )}
+      </div>
     </div>
   );
 };

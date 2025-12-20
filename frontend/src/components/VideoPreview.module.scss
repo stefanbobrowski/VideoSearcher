@@ -1,7 +1,7 @@
 .videoPreview {
-  margin: 2rem auto 1.5rem auto;
+  margin: 1rem auto;
   width: 100%;
-  max-width: 480px;
+  max-width: 600px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -9,7 +9,7 @@
   background: #181a2a;
   border-radius: 12px;
   box-shadow: 0 2px 16px 0 #0004;
-  padding: 1.5rem 1rem 2.5rem 1rem;
+  padding: 1rem;
 }
 .videoPreview video {
   border-radius: 8px;

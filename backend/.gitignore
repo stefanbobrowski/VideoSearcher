@@ -12,6 +12,9 @@ yarn-error.log*
 # Env files
 .env*
 
+# Keys
+keys/*.json
+
 # Service account keys (never commit!)
 *-key.json
 *service-account*.json
@@ -23,3 +26,5 @@ serviceAccountKey.json
 !package.json
 !package-lock.json
 !tsconfig*.json
+
+

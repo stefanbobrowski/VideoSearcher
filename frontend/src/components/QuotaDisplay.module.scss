@@ -1,0 +1,77 @@
+.quotaDisplay {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  background-color: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  max-width: 90%;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  .header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+
+    .userInfo {
+      .email {
+        font-size: 0.9em;
+        color: #666;
+      }
+    }
+
+    .logoutBtn {
+      margin-left: 1rem;
+      padding: 6px 12px;
+      background-color: #f5f5f5;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #eee;
+      }
+    }
+  }
+
+  .quotaInfo {
+    .quotaText {
+      font-size: 0.95em;
+      color: #333;
+      margin-bottom: 8px;
+
+      strong {
+        color: #667eea;
+        font-size: 1.1em;
+      }
+    }
+
+    .progressBar {
+      height: 8px;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+
+      .progressFill {
+        height: 100%;
+        transition:
+          width 0.3s ease,
+          background-color 0.3s ease;
+        border-radius: 4px;
+      }
+    }
+
+    .resetInfo {
+      font-size: 0.8em;
+      color: #999;
+      text-align: right;
+    }
+  }
+}

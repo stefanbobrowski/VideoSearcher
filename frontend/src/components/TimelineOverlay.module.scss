@@ -3,29 +3,35 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 8px;
+  bottom: 0;
   height: 16px;
   background: transparent;
   pointer-events: none;
-  z-index: 2;
+  z-index: 10;
   box-sizing: border-box;
-  display: flex;
-  align-items: flex-end;
+  display: block;
 }
+
 .marker {
   position: absolute;
   top: 0;
-  width: 8px;
   height: 100%;
-  background: teal;
-  border-radius: 4px;
+  background: rgba(167, 139, 250, 0.7);
+  border-radius: 2px;
   cursor: pointer;
-  transform: translateX(-50%);
-  transition: background 0.2s;
-  border: 2px solid #fff;
-  box-shadow: 0 0 2px #0002;
+  transition: all 0.2s;
+  border: 1px solid rgba(167, 139, 250, 0.9);
+  box-shadow: 0 0 4px rgba(167, 139, 250, 0.4);
   pointer-events: auto;
+  outline: none;
+  min-width: 4px;
 }
+
+.marker:focus,
 .marker:hover {
-  background: orange;
+  background: rgba(167, 139, 250, 0.9);
+  border-color: #a78bfa;
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
+  transform: scaleY(1.2);
+  z-index: 10;
 }

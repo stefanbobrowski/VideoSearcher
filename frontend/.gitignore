@@ -25,6 +25,7 @@ dist-ssr
 
 # Env files
 .env*
+!.env.example
 
 # Mac system files
 *.DS_Store
