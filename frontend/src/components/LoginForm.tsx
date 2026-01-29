@@ -41,7 +41,7 @@ const LoginForm: React.FC = () => {
         </button>
 
         <p style={{ marginTop: 20, fontSize: '0.85em', color: '#666' }}>
-          💡 Get 5 free video searches per day
+          💡 Get free video searches every day
         </p>
       </div>
     </div>

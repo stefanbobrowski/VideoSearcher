@@ -14,7 +14,9 @@ interface User {
 const users: Map<string, User> = new Map();
 
 // Daily quota per user
-const DAILY_QUOTA = 5;
+// Reduced to 1 to help avoid Vertex AI rate limiting (429 errors)
+// Once GCP quotas are increased, this can be raised to 5-10
+const DAILY_QUOTA = 1;
 
 /**
  * Get or create a user by email

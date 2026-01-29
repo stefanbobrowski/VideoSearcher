@@ -1,5 +1,6 @@
 import { Storage } from '@google-cloud/storage';
 import { VertexAI } from '@google-cloud/vertexai';
+import { requestQueue } from './request-queue';
 
 // In production (Cloud Run), authentication is automatic via the service account
 // In development, use the credentials file if GOOGLE_APPLICATION_CREDENTIALS is set
@@ -107,9 +108,19 @@ export async function deleteVideo(gcsUri: string): Promise<void> {
 
 /**
  * Analyze a video using Vertex AI Gemini
+ * Requests are queued to avoid overwhelming the API
  */
 export async function analyzeVideo(gcsUri: string, prompt: string): Promise<any> {
   console.log(`Analyzing video: ${gcsUri} with prompt: ${prompt}`);
+  
+  // Enqueue the actual analysis to prevent concurrent overwhelm
+  return requestQueue.enqueue(() => performVideoAnalysis(gcsUri, prompt));
+}
+
+/**
+ * Internal function that performs the actual video analysis
+ */
+async function performVideoAnalysis(gcsUri: string, prompt: string): Promise<any> {
   console.log(`Starting video analysis at ${new Date().toISOString()}`);
 
   try {
@@ -205,4 +216,3 @@ export async function analyzeVideo(gcsUri: string, prompt: string): Promise<any>
     console.error('Error analyzing video with Vertex AI:', error);
     throw new Error(`Video analysis failed: ${error.message}`);
   }
-}

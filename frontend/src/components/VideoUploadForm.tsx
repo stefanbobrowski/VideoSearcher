@@ -84,7 +84,7 @@ const VideoUploadForm: React.FC<VideoUploadFormProps> = ({ onSubmit, uploading, 
             Max video length: <span>10 minutes</span>
           </li>
           <li>
-            Daily quota: <span>5 analyses</span>
+            Daily quota: <span>1 analysis</span>
           </li>
         </ul>
         <p className={styles.privacyNote}>

@@ -11,6 +11,51 @@ import styles from './App.module.scss';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
+/**
+ * Fetch with exponential backoff retry for handling 429 rate limit errors
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  onRetry?: (attempt: number, delay: number) => void,
+): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+
+      // If not rate limited, return the response
+      if (res.status !== 429) {
+        return res;
+      }
+
+      // Rate limited - calculate backoff delay
+      const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+      console.warn(
+        `⏰ Rate limited (429). Attempt ${attempt + 1}/${maxRetries}. Retrying in ${delay}ms...`,
+      );
+
+      if (onRetry) {
+        onRetry(attempt + 1, delay);
+      }
+
+      // Wait before retrying
+      await new Promise((r) => setTimeout(r, delay));
+    } catch (err) {
+      // On fetch error, retry if we haven't exceeded max retries
+      if (attempt === maxRetries - 1) {
+        throw err;
+      }
+      const delay = Math.pow(2, attempt) * 1000;
+      console.warn(`Fetch error, retrying in ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+
+  // All retries exhausted
+  throw new Error('Max retries exceeded for rate-limited request');
+}
+
 // Debug section for testing API connectivity (Uncomment this and elements when debugging)
 // function DebugSection() {
 //   const [debugOutput, setDebugOutput] = useState('');
@@ -180,15 +225,22 @@ function App() {
       const analyzeController = new AbortController();
       const analyzeTimeout = setTimeout(() => analyzeController.abort(), 5 * 60 * 1000); // 5 minute timeout
 
-      const analyzeRes = await fetch(`${API_URL}/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+      const analyzeRes = await fetchWithRetry(
+        `${API_URL}/analyze`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ gcsUri, prompt }),
+          signal: analyzeController.signal,
         },
-        body: JSON.stringify({ gcsUri, prompt }),
-        signal: analyzeController.signal,
-      }).catch((err) => {
+        3, // max 3 retries with exponential backoff
+        (attempt, delay) => {
+          setError(`Retrying analysis (attempt ${attempt}/3). Please wait ${delay / 1000}s...`);
+        },
+      ).catch((err) => {
         clearTimeout(analyzeTimeout);
         console.error('Fetch error during analysis:', err);
         throw err;

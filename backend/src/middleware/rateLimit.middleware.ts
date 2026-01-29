@@ -29,12 +29,12 @@ export const uploadLimiter = rateLimit({
 
 /**
  * Rate limiter for video analysis
- * 5 analysis requests per day per IP
+ * 1 analysis requests per day per IP
  */
 export const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 5,
-  message: 'Too many analysis requests. Maximum 5 analyses per day allowed.',
+  max: 1,
+  message: 'Too many analysis requests. Maximum 1 analysis per day allowed.',
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false }, // Suppress warning - we know we're behind Cloud Run proxy
