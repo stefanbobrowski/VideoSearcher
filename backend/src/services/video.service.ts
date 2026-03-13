@@ -21,7 +21,7 @@ const vertexAI = new VertexAI({
 
 // Using Gemini 2.0 Flash - LATEST MODEL (December 2024+)
 // This is the cutting-edge native GCP model with improved video understanding
-// 
+//
 // Video capabilities:
 // - Supports videos up to 1 hour long
 // - Enhanced temporal understanding compared to 1.5
@@ -29,7 +29,7 @@ const vertexAI = new VertexAI({
 // - Faster processing than previous versions
 // - Best for: action detection, scene analysis, object tracking, gaming highlights
 const generativeModel = vertexAI.getGenerativeModel({
-  model: 'gemini-2.0-flash-exp',
+  model: 'gemini-2.0-flash-001',
 });
 
 /**
@@ -37,19 +37,19 @@ const generativeModel = vertexAI.getGenerativeModel({
  */
 export async function testGeminiSimple(prompt: string): Promise<any> {
   console.log(`Testing Gemini with prompt: ${prompt}`);
-  
+
   try {
     const result = await generativeModel.generateContent(prompt);
     const response = result.response;
     const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
+
     console.log('Gemini response:', text);
-    
+
     return {
       message: 'Gemini test successful',
       prompt,
       response: text,
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash-001',
     };
   } catch (error: any) {
     console.error('Gemini test error:', error);
@@ -60,14 +60,16 @@ export async function testGeminiSimple(prompt: string): Promise<any> {
 /**
  * Upload a video file to Google Cloud Storage
  */
-export async function uploadVideo(file: Express.Multer.File): Promise<{ message: string; gcsUri: string }> {
+export async function uploadVideo(
+  file: Express.Multer.File
+): Promise<{ message: string; gcsUri: string }> {
   const { originalname, buffer } = file;
   const blob = storage.bucket(BUCKET_NAME).file(originalname);
   const blobStream = blob.createWriteStream({
     resumable: false,
     metadata: {
-      contentType: file.mimetype
-    }
+      contentType: file.mimetype,
+    },
   });
 
   return new Promise((resolve, reject) => {
@@ -78,12 +80,12 @@ export async function uploadVideo(file: Express.Multer.File): Promise<{ message:
     blobStream.on('finish', () => {
       const gcsUri = `gs://${BUCKET_NAME}/${originalname}`;
       console.log(`✅ File uploaded successfully: ${gcsUri}`);
-      
+
       // No need to set ACLs - Vertex AI can access files in the same project
       // Uniform bucket-level access is enabled, which is more secure
       resolve({
         message: 'Upload complete',
-        gcsUri
+        gcsUri,
       });
     });
 
@@ -110,9 +112,12 @@ export async function deleteVideo(gcsUri: string): Promise<void> {
  * Analyze a video using Vertex AI Gemini
  * Requests are queued to avoid overwhelming the API
  */
-export async function analyzeVideo(gcsUri: string, prompt: string): Promise<any> {
+export async function analyzeVideo(
+  gcsUri: string,
+  prompt: string
+): Promise<any> {
   console.log(`Analyzing video: ${gcsUri} with prompt: ${prompt}`);
-  
+
   // Enqueue the actual analysis to prevent concurrent overwhelm
   return requestQueue.enqueue(() => performVideoAnalysis(gcsUri, prompt));
 }
@@ -120,7 +125,10 @@ export async function analyzeVideo(gcsUri: string, prompt: string): Promise<any>
 /**
  * Internal function that performs the actual video analysis
  */
-async function performVideoAnalysis(gcsUri: string, prompt: string): Promise<any> {
+async function performVideoAnalysis(
+  gcsUri: string,
+  prompt: string
+): Promise<any> {
   console.log(`Starting video analysis at ${new Date().toISOString()}`);
 
   try {
@@ -144,18 +152,20 @@ async function performVideoAnalysis(gcsUri: string, prompt: string): Promise<any
       contents: [{ role: 'user', parts: [filePart, textPart] }],
     });
     console.log(`Received response at ${new Date().toISOString()}`);
-    
+
     const response = result.response;
-    const analysisText = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const analysisText =
+      response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     console.log('Gemini response:', analysisText);
 
     // Extract timestamp ranges from the analysis text
     // Look for patterns like "MM:SS - MM:SS" or "MM:SS-MM:SS" (ranges)
-    const rangeRegex = /(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?)/g;
+    const rangeRegex =
+      /(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?)/g;
     const ranges: string[] = [];
     let match;
-    
+
     while ((match = rangeRegex.exec(analysisText)) !== null) {
       ranges.push(`${match[1]} - ${match[2]}`);
     }
@@ -169,15 +179,20 @@ async function performVideoAnalysis(gcsUri: string, prompt: string): Promise<any
     }
 
     function parseRange(range: string): { start: number; end: number } | null {
-      const match = range.match(/(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?)/);
+      const match = range.match(
+        /(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?)/
+      );
       if (match) {
         return { start: toSeconds(match[1]), end: toSeconds(match[2]) };
       }
       return null;
     }
 
-    function rangesOverlap(r1: { start: number; end: number }, r2: { start: number; end: number }): boolean {
-      return (r1.start <= r2.end && r1.end >= r2.start);
+    function rangesOverlap(
+      r1: { start: number; end: number },
+      r2: { start: number; end: number }
+    ): boolean {
+      return r1.start <= r2.end && r1.end >= r2.start;
     }
 
     // Remove duplicates and overlapping ranges, keeping the first occurrence
@@ -189,15 +204,26 @@ async function performVideoAnalysis(gcsUri: string, prompt: string): Promise<any
       if (!parsed) continue;
 
       // Check if this range overlaps with any existing range
-      const overlaps = parsedRanges.some(existing => rangesOverlap(existing, parsed));
-      
+      const overlaps = parsedRanges.some((existing) =>
+        rangesOverlap(existing, parsed)
+      );
+
       if (!overlaps) {
         uniqueRanges.push(range);
         parsedRanges.push(parsed);
       }
     }
 
-    const timestamps = uniqueRanges.length > 0 ? uniqueRanges : [...new Set(analysisText.match(/\b(?:(\d{1,2}):(\d{2}):(\d{2})|(\d{1,2}):(\d{2}))\b/g) || [])].sort();
+    const timestamps =
+      uniqueRanges.length > 0
+        ? uniqueRanges
+        : [
+            ...new Set(
+              analysisText.match(
+                /\b(?:(\d{1,2}):(\d{2}):(\d{2})|(\d{1,2}):(\d{2}))\b/g
+              ) || []
+            ),
+          ].sort();
 
     // Clean up: Delete the video after successful analysis
     // This prevents storage bloat in production
@@ -216,3 +242,4 @@ async function performVideoAnalysis(gcsUri: string, prompt: string): Promise<any
     console.error('Error analyzing video with Vertex AI:', error);
     throw new Error(`Video analysis failed: ${error.message}`);
   }
+}
