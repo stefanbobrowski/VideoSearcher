@@ -14,16 +14,18 @@ interface User {
 const users: Map<string, User> = new Map();
 
 // Daily quota per user
-// Reduced to 1 to help avoid Vertex AI rate limiting (429 errors)
-// Once GCP quotas are increased, this can be raised to 5-10
-const DAILY_QUOTA = 1;
+const DAILY_QUOTA = 3;
+
+// Higher quota for admin/owner email (set ADMIN_EMAIL in .env)
+const ADMIN_DAILY_QUOTA = 20;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 
 /**
  * Get or create a user by email
  */
 export function getOrCreateUser(email: string): User {
-  let user = Array.from(users.values()).find(u => u.email === email);
-  
+  let user = Array.from(users.values()).find((u) => u.email === email);
+
   if (!user) {
     user = {
       id: uuidv4(),
@@ -31,12 +33,13 @@ export function getOrCreateUser(email: string): User {
       createdAt: new Date(),
       requestCount: 0,
       lastRequestAt: new Date(),
-      dailyQuota: DAILY_QUOTA,
+      dailyQuota:
+        ADMIN_EMAIL && email === ADMIN_EMAIL ? ADMIN_DAILY_QUOTA : DAILY_QUOTA,
       quotaResetAt: getNextMidnight(),
     };
     users.set(user.id, user);
   }
-  
+
   return user;
 }
 
@@ -50,9 +53,13 @@ export function getUserById(userId: string): User | undefined {
 /**
  * Check if user has remaining quota
  */
-export function checkQuota(userId: string): { allowed: boolean; remaining: number; resetAt: Date } {
+export function checkQuota(userId: string): {
+  allowed: boolean;
+  remaining: number;
+  resetAt: Date;
+} {
   const user = users.get(userId);
-  
+
   if (!user) {
     return { allowed: false, remaining: 0, resetAt: new Date() };
   }
@@ -74,7 +81,7 @@ export function checkQuota(userId: string): { allowed: boolean; remaining: numbe
  */
 export function incrementRequestCount(userId: string): void {
   const user = users.get(userId);
-  
+
   if (user) {
     user.requestCount++;
     user.lastRequestAt = new Date();
@@ -84,9 +91,11 @@ export function incrementRequestCount(userId: string): void {
 /**
  * Get user's current quota status
  */
-export function getQuotaStatus(userId: string): { used: number; total: number; remaining: number; resetAt: Date } | null {
+export function getQuotaStatus(
+  userId: string
+): { used: number; total: number; remaining: number; resetAt: Date } | null {
   const user = users.get(userId);
-  
+
   if (!user) {
     return null;
   }
