@@ -20,7 +20,7 @@ const vertexAI = new VertexAI({
 });
 
 const generativeModel = vertexAI.getGenerativeModel({
-  model: 'gemini-2.0-flash',
+  model: 'gemini-1.5-flash',
 });
 
 /**
@@ -40,7 +40,7 @@ export async function testGeminiSimple(prompt: string): Promise<any> {
       message: 'Gemini test successful',
       prompt,
       response: text,
-      model: 'gemini-2.0-flash-001',
+      model: 'gemini-1.5-flash',
     };
   } catch (error: any) {
     console.error('Gemini test error:', error);
