@@ -19,17 +19,8 @@ const vertexAI = new VertexAI({
   location: LOCATION,
 });
 
-// Using Gemini 2.0 Flash - LATEST MODEL (December 2024+)
-// This is the cutting-edge native GCP model with improved video understanding
-//
-// Video capabilities:
-// - Supports videos up to 1 hour long
-// - Enhanced temporal understanding compared to 1.5
-// - Better action detection and timestamp accuracy
-// - Faster processing than previous versions
-// - Best for: action detection, scene analysis, object tracking, gaming highlights
 const generativeModel = vertexAI.getGenerativeModel({
-  model: 'gemini-2.0-flash-001',
+  model: 'gemini-3-flash-preview',
 });
 
 /**
