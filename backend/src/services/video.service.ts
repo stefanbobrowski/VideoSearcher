@@ -1,5 +1,5 @@
 import { Storage } from '@google-cloud/storage';
-import { VertexAI } from '@google-cloud/vertexai';
+import { GoogleGenAI } from '@google/genai';
 import { requestQueue } from './request-queue';
 
 // In production (Cloud Run), authentication is automatic via the service account
@@ -12,15 +12,13 @@ const storage = new Storage(
 const BUCKET_NAME = 'video-searcher-uploads';
 const PROJECT_ID = 'video-searcher-1';
 const LOCATION = 'us-central1';
+const MODEL = 'gemini-2.0-flash';
 
-// Initialize Vertex AI
-const vertexAI = new VertexAI({
+// Initialize Gen AI SDK with Vertex AI backend (uses ADC / service account automatically)
+const ai = new GoogleGenAI({
+  vertexai: true,
   project: PROJECT_ID,
   location: LOCATION,
-});
-
-const generativeModel = vertexAI.getGenerativeModel({
-  model: 'gemini-1.5-flash',
 });
 
 /**
@@ -30,9 +28,11 @@ export async function testGeminiSimple(prompt: string): Promise<any> {
   console.log(`Testing Gemini with prompt: ${prompt}`);
 
   try {
-    const result = await generativeModel.generateContent(prompt);
-    const response = result.response;
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const result = await ai.models.generateContent({
+      model: MODEL,
+      contents: prompt,
+    });
+    const text = result.text ?? '';
 
     console.log('Gemini response:', text);
 
@@ -40,7 +40,7 @@ export async function testGeminiSimple(prompt: string): Promise<any> {
       message: 'Gemini test successful',
       prompt,
       response: text,
-      model: 'gemini-1.5-flash',
+      model: MODEL,
     };
   } catch (error: any) {
     console.error('Gemini test error:', error);
@@ -139,14 +139,18 @@ async function performVideoAnalysis(
     };
 
     console.log('Sending request to Gemini...');
-    const result = await generativeModel.generateContent({
-      contents: [{ role: 'user', parts: [filePart, textPart] }],
+    const result = await ai.models.generateContent({
+      model: MODEL,
+      contents: [
+        {
+          role: 'user',
+          parts: [filePart, textPart],
+        },
+      ],
     });
     console.log(`Received response at ${new Date().toISOString()}`);
 
-    const response = result.response;
-    const analysisText =
-      response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const analysisText = result.text ?? '';
 
     console.log('Gemini response:', analysisText);
 
@@ -227,7 +231,7 @@ async function performVideoAnalysis(
       status: 'completed',
       analysisText,
       timestamps,
-      rawResponse: response,
+      rawResponse: result,
     };
   } catch (error: any) {
     console.error('Error analyzing video with Vertex AI:', error);
