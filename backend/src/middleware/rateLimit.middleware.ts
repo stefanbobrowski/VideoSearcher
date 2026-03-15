@@ -33,8 +33,8 @@ export const uploadLimiter = rateLimit({
  */
 export const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 1,
-  message: 'Too many analysis requests. Maximum 1 analysis per day allowed.',
+  max: process.env.NODE_ENV === 'production' ? 5 : 100,
+  message: 'Too many analysis requests. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false }, // Suppress warning - we know we're behind Cloud Run proxy

@@ -1,24 +1,11 @@
-import { Storage } from '@google-cloud/storage';
 import { GoogleGenAI } from '@google/genai';
 import { requestQueue } from './request-queue';
 
-// In production (Cloud Run), authentication is automatic via the service account
-// In development, use the credentials file if GOOGLE_APPLICATION_CREDENTIALS is set
-const storage = new Storage(
-  process.env.GOOGLE_APPLICATION_CREDENTIALS
-    ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS }
-    : {} // Empty object = use default credentials (works on Cloud Run)
-);
-const BUCKET_NAME = 'video-searcher-uploads';
-const PROJECT_ID = 'video-searcher-1';
-const LOCATION = 'us-central1';
-const MODEL = 'gemini-2.0-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-// Initialize Gen AI SDK with Vertex AI backend (uses ADC / service account automatically)
+// Initialize Gen AI SDK with API key (Generative Language API — a GCP service)
 const ai = new GoogleGenAI({
-  vertexai: true,
-  project: PROJECT_ID,
-  location: LOCATION,
+  apiKey: process.env.GEMINI_API_KEY!,
 });
 
 /**
@@ -49,88 +36,85 @@ export async function testGeminiSimple(prompt: string): Promise<any> {
 }
 
 /**
- * Upload a video file to Google Cloud Storage
- */
-export async function uploadVideo(
-  file: Express.Multer.File
-): Promise<{ message: string; gcsUri: string }> {
-  const { originalname, buffer } = file;
-  const blob = storage.bucket(BUCKET_NAME).file(originalname);
-  const blobStream = blob.createWriteStream({
-    resumable: false,
-    metadata: {
-      contentType: file.mimetype,
-    },
-  });
-
-  return new Promise((resolve, reject) => {
-    blobStream.on('error', (err) => {
-      reject(err);
-    });
-
-    blobStream.on('finish', () => {
-      const gcsUri = `gs://${BUCKET_NAME}/${originalname}`;
-      console.log(`✅ File uploaded successfully: ${gcsUri}`);
-
-      // No need to set ACLs - Vertex AI can access files in the same project
-      // Uniform bucket-level access is enabled, which is more secure
-      resolve({
-        message: 'Upload complete',
-        gcsUri,
-      });
-    });
-
-    blobStream.end(buffer);
-  });
-}
-
-/**
- * Delete a video from Google Cloud Storage
- */
-export async function deleteVideo(gcsUri: string): Promise<void> {
-  try {
-    // Extract filename from gs://bucket-name/filename
-    const filename = gcsUri.replace(`gs://${BUCKET_NAME}/`, '');
-    await storage.bucket(BUCKET_NAME).file(filename).delete();
-    console.log(`🗑️  Deleted video: ${gcsUri}`);
-  } catch (error: any) {
-    console.error('Error deleting video:', error);
-    // Don't throw - deletion failure shouldn't break the analysis response
-  }
-}
-
-/**
- * Analyze a video using Vertex AI Gemini
+ * Analyze a video using Gemini
+ * Accepts the file buffer directly — no GCS needed
  * Requests are queued to avoid overwhelming the API
  */
 export async function analyzeVideo(
-  gcsUri: string,
+  fileBuffer: Buffer,
+  mimeType: string,
+  fileName: string,
   prompt: string
 ): Promise<any> {
-  console.log(`Analyzing video: ${gcsUri} with prompt: ${prompt}`);
+  console.log(
+    `Analyzing video: ${fileName} (${fileBuffer.length} bytes) with prompt: ${prompt}`
+  );
 
   // Enqueue the actual analysis to prevent concurrent overwhelm
-  return requestQueue.enqueue(() => performVideoAnalysis(gcsUri, prompt));
+  return requestQueue.enqueue(() =>
+    performVideoAnalysis(fileBuffer, mimeType, fileName, prompt)
+  );
+}
+
+/**
+ * Upload a buffer to the Gemini File API and poll until ready.
+ */
+async function uploadToFileAPI(
+  fileBuffer: Buffer,
+  mimeType: string,
+  fileName: string
+): Promise<{ name: string; uri: string; mimeType: string }> {
+  console.log(`Uploading to Gemini File API (${fileBuffer.length} bytes)...`);
+  const uploaded = await ai.files.upload({
+    file: new Blob([new Uint8Array(fileBuffer)], { type: mimeType }),
+    config: { mimeType, displayName: fileName },
+  });
+
+  // Poll until file processing is complete
+  let fileInfo = uploaded;
+  while (fileInfo.state === 'PROCESSING') {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    fileInfo = await ai.files.get({ name: fileInfo.name! });
+    console.log(`File state: ${fileInfo.state}`);
+  }
+
+  if (fileInfo.state !== 'ACTIVE') {
+    throw new Error(`File processing failed with state: ${fileInfo.state}`);
+  }
+
+  return {
+    name: fileInfo.name!,
+    uri: fileInfo.uri!,
+    mimeType: fileInfo.mimeType || mimeType,
+  };
 }
 
 /**
  * Internal function that performs the actual video analysis
  */
 async function performVideoAnalysis(
-  gcsUri: string,
+  fileBuffer: Buffer,
+  mimeType: string,
+  fileName: string,
   prompt: string
 ): Promise<any> {
   console.log(`Starting video analysis at ${new Date().toISOString()}`);
 
+  let uploadedFileName: string | undefined;
+
   try {
+    // Upload video to Gemini File API
+    const uploadedFile = await uploadToFileAPI(fileBuffer, mimeType, fileName);
+    uploadedFileName = uploadedFile.name;
+
     // Enhanced prompt to ensure timestamp format
     const enhancedPrompt = `${prompt}\n\nIMPORTANT: Provide all timestamps in MM:SS or HH:MM:SS format (e.g., 01:23 or 1:23:45). List each moment on a new line with its timestamp.`;
 
-    // For Gemini 2.0, use inline data with file URI
+    // Reference the file uploaded to the File API
     const filePart = {
       fileData: {
-        mimeType: 'video/mp4',
-        fileUri: gcsUri,
+        mimeType: uploadedFile.mimeType,
+        fileUri: uploadedFile.uri,
       },
     };
 
@@ -220,13 +204,19 @@ async function performVideoAnalysis(
             ),
           ].sort();
 
-    // Clean up: Delete the video after successful analysis
-    // This prevents storage bloat in production
-    await deleteVideo(gcsUri);
+    // Clean up: Delete the file from File API after successful analysis
+    if (uploadedFileName) {
+      try {
+        await ai.files.delete({ name: uploadedFileName });
+        console.log(`🗑️  Deleted file from File API: ${uploadedFileName}`);
+      } catch (e) {
+        console.error('Error deleting from File API:', e);
+      }
+    }
 
     return {
       message: 'Analysis complete',
-      gcsUri,
+      fileName,
       prompt,
       status: 'completed',
       analysisText,
@@ -234,7 +224,12 @@ async function performVideoAnalysis(
       rawResponse: result,
     };
   } catch (error: any) {
-    console.error('Error analyzing video with Vertex AI:', error);
+    console.error('Error analyzing video:', error);
+    if (uploadedFileName) {
+      try {
+        await ai.files.delete({ name: uploadedFileName });
+      } catch (_) {}
+    }
     throw new Error(`Video analysis failed: ${error.message}`);
   }
 }

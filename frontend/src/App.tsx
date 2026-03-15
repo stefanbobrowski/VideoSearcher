@@ -157,83 +157,26 @@ function App() {
     setFile(file);
 
     try {
-      // Step 1: Get signed URL for direct upload to GCS
-      console.log('📝 Step 1: Requesting signed upload URL...');
+      // Upload video + prompt directly to backend for analysis
+      console.log('📤 Uploading video and analyzing with Gemini...');
 
-      const signedUrlRes = await fetch(`${API_URL}/generate-upload-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type,
-        }),
-      });
-
-      if (!signedUrlRes.ok) {
-        if (signedUrlRes.status === 401 || signedUrlRes.status === 403) {
-          console.log('Authentication error, logging out...');
-          logout();
-          throw new Error('Session expired. Please log in again.');
-        }
-        throw new Error('Failed to get upload URL');
-      }
-
-      const { uploadUrl, gcsUri } = await signedUrlRes.json();
-      console.log('✅ Got signed URL, uploading directly to GCS...');
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('prompt', prompt);
 
       setProgress(10);
 
-      // Step 2: Upload directly to GCS using signed URL
-      console.log('📤 Step 2: Uploading video to GCS...');
-
-      const uploadController = new AbortController();
-      const uploadTimeout = setTimeout(() => uploadController.abort(), 10 * 60 * 1000); // 10 minute timeout
-
-      const gcsUploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file,
-        signal: uploadController.signal,
-      })
-        .then((res) => {
-          clearTimeout(uploadTimeout);
-          console.log('✅ Upload to GCS completed');
-          return res;
-        })
-        .catch((err) => {
-          clearTimeout(uploadTimeout);
-          console.error('❌ Fetch error during GCS upload:', err);
-          throw err;
-        });
-
-      if (!gcsUploadRes.ok) {
-        throw new Error(`GCS upload failed: ${gcsUploadRes.statusText}`);
-      }
-
-      console.log('✅ Upload complete:', gcsUri);
-      setProgress(50);
-
-      // Step 3: Analyze the video (this can take 30-120 seconds)
-      console.log('🔍 Step 3: Analyzing video with Gemini...');
-      console.log('Request:', { gcsUri, prompt });
-
       const analyzeController = new AbortController();
-      const analyzeTimeout = setTimeout(() => analyzeController.abort(), 5 * 60 * 1000); // 5 minute timeout
+      const analyzeTimeout = setTimeout(() => analyzeController.abort(), 10 * 60 * 1000); // 10 minute timeout
 
       const analyzeRes = await fetchWithRetry(
         `${API_URL}/analyze`,
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ gcsUri, prompt }),
+          body: formData,
           signal: analyzeController.signal,
         },
         3, // max 3 retries with exponential backoff
@@ -259,9 +202,7 @@ function App() {
         }
         // Check for rate limiting (429)
         if (analyzeRes.status === 429) {
-          throw new Error(
-            '⏰ Rate limit exceeded. Google Vertex AI has too many requests. Please wait 1-2 minutes and try again.',
-          );
+          throw new Error('⏰ Rate limit exceeded. Please wait 1-2 minutes and try again.');
         }
 
         const errorText = await analyzeRes.text();
