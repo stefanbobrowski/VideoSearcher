@@ -115,6 +115,8 @@ VITE_API_URL=https://your-backend.com
 
 ## Author
 
-**Stefan Bobrowski:** [https://github.com/stefanbobrowski]
-**Portfolio:** [stefanbobrowski.com]
-**Contact:** [stefanbobrowski1@gmail.com]
+**Stefan Bobrowski**
+
+[GitHub](https://github.com/stefanbobrowski)  
+[Portfolio](https://stefanbobrowski.com)  
+[Email](mailto:stefanbobrowski1@gmail.com)
