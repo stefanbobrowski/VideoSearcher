@@ -109,7 +109,17 @@ VITE_API_URL=https://your-backend.com
 
 ## 📄 License
 
-© 2026 Video Searcher. Built by Stefan Bobrowski. All rights reserved.
+**Non-Commercial Educational Use License**
+
+© 2026 Stefan Bobrowski. All rights reserved.
+
+This project is licensed under a **Non-Commercial Educational Use License**.
+
+- ✅ Educational use permitted
+- ✅ Personal learning & experimentation allowed
+- ❌ Commercial use prohibited
+
+See [LICENSE](./LICENSE) for full terms. For commercial licensing inquiries, email: **stefanbobrowski1@gmail.com**
 
 ---
 
